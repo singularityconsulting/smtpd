@@ -27,6 +27,8 @@ type Server struct {
 	MaxMessageSize int // Max message size in bytes. (default: 10240000)
 	MaxRecipients  int // Max RCPT TO calls for each envelope. (default: 100)
 
+	SleepTime time.Duration // Time to sleep if we don't get a new connection. (default: 1s)
+
 	// New e-mails are handed off to this function.
 	// Can be left empty for a NOOP server.
 	// If an error is returned, it will be reported in the SMTP session.
@@ -60,6 +62,9 @@ type Server struct {
 	listener   *net.Listener
 	waitgrp    sync.WaitGroup
 	inShutdown atomicBool // true when server is in shutdown
+
+	// We need a way to track the protocol return codes
+	ReplyHandler func(code int, message string)
 }
 
 // Protocol represents the protocol used in the SMTP session
@@ -193,7 +198,7 @@ func (srv *Server) Serve(l net.Listener) error {
 			}
 
 			if ne, ok := e.(net.Error); ok && ne.Temporary() {
-				time.Sleep(time.Second)
+				time.Sleep(srv.SleepTime)
 				continue
 			}
 			return e
@@ -260,6 +265,9 @@ func (srv *Server) Address() net.Addr {
 }
 
 func (srv *Server) configureDefaults() {
+	if srv.SleepTime == 0 {
+		srv.SleepTime = time.Second
+	}
 
 	if srv.MaxMessageSize == 0 {
 		srv.MaxMessageSize = 10240000
@@ -295,6 +303,10 @@ func (srv *Server) configureDefaults() {
 
 	if srv.WelcomeMessage == "" {
 		srv.WelcomeMessage = fmt.Sprintf("%s ESMTP ready.", srv.Hostname)
+	}
+
+	if srv.ReplyHandler == nil {
+		srv.ReplyHandler = defaultReplyHandler
 	}
 
 }
@@ -366,6 +378,7 @@ func (session *session) reply(code int, message string) {
 	session.logf("sending: %d %s", code, message)
 	fmt.Fprintf(session.writer, "%d %s\r\n", code, message)
 	session.flush()
+	session.server.ReplyHandler(code, message)
 }
 
 func (session *session) flush() {
@@ -486,3 +499,5 @@ type atomicBool int32
 func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
 func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
+
+func defaultReplyHandler(code int, message string) {}

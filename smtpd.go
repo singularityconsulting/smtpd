@@ -65,6 +65,12 @@ type Server struct {
 
 	// We need a way to track the protocol return codes
 	ReplyHandler func(code int, message string)
+
+	// And a way to track the end for each request so we can get metrics
+	CloseSessionHandler func(peer Peer)
+
+	// On session close deadline
+	CloseMaxDeadline time.Duration
 }
 
 // Protocol represents the protocol used in the SMTP session
@@ -269,6 +275,10 @@ func (srv *Server) configureDefaults() {
 		srv.SleepTime = time.Second
 	}
 
+	if srv.CloseMaxDeadline == 0 {
+		srv.CloseMaxDeadline = 200 * time.Millisecond
+	}
+
 	if srv.MaxMessageSize == 0 {
 		srv.MaxMessageSize = 10240000
 	}
@@ -309,6 +319,9 @@ func (srv *Server) configureDefaults() {
 		srv.ReplyHandler = defaultReplyHandler
 	}
 
+	if srv.CloseSessionHandler == nil {
+		srv.CloseSessionHandler = defaultCloseSessionHandler
+	}
 }
 
 func (session *session) serve() {
@@ -443,9 +456,15 @@ func (session *session) deliver() error {
 }
 
 func (session *session) close() {
+	session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
+
 	session.writer.Flush()
-	time.Sleep(200 * time.Millisecond)
+	// trying to avoid having a hardcoded sleep time to close the connection using SetWriteDeadline
+	// time.Sleep(200 * time.Millisecond)
+
 	session.conn.Close()
+
+	session.server.CloseSessionHandler(session.peer)
 }
 
 // From net/http/server.go
@@ -501,3 +520,4 @@ func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
 
 func defaultReplyHandler(code int, message string) {}
+func defaultCloseSessionHandler(peer Peer)         {}

@@ -61,6 +61,7 @@ func parseLine(line string) (cmd command) {
 }
 
 func (session *session) handle(line string) {
+	handleStartTime := time.Now()
 
 	cmd := parseLine(line)
 
@@ -72,56 +73,48 @@ func (session *session) handle(line string) {
 
 	case "PROXY":
 		session.handlePROXY(cmd)
-		return
 
 	case "HELO":
 		session.handleHELO(cmd)
-		return
 
 	case "EHLO":
 		session.handleEHLO(cmd)
-		return
 
 	case "MAIL":
 		session.handleMAIL(cmd)
-		return
 
 	case "RCPT":
 		session.handleRCPT(cmd)
-		return
 
 	case "STARTTLS":
 		session.handleSTARTTLS(cmd)
-		return
 
 	case "DATA":
 		session.handleDATA(cmd)
-		return
 
 	case "RSET":
 		session.handleRSET(cmd)
-		return
 
 	case "NOOP":
 		session.handleNOOP(cmd)
-		return
 
 	case "QUIT":
 		session.handleQUIT(cmd)
-		return
 
 	case "AUTH":
 		session.handleAUTH(cmd)
-		return
 
 	case "XCLIENT":
 		session.handleXCLIENT(cmd)
-		return
 
+	default:
+		cmd.action = "UNKNOWN"
+		session.reply(502, "Unsupported command.")
 	}
 
-	session.reply(502, "Unsupported command.")
+	elapsed := time.Since(handleStartTime)
 
+	session.server.ProtocolTrackerHandler(cmd.action, elapsed)
 }
 
 func (session *session) handleHELO(cmd command) {

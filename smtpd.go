@@ -69,6 +69,9 @@ type Server struct {
 	// And a way to track the end for each request so we can get metrics
 	CloseSessionHandler func(peer Peer)
 
+	// Function to track the time it takes each step of the protocol
+	ProtocolTrackerHandler func(action string, duration time.Duration)
+
 	// On session close deadline
 	CloseMaxDeadline time.Duration
 }
@@ -325,6 +328,10 @@ func (srv *Server) configureDefaults() {
 	if srv.CloseSessionHandler == nil {
 		srv.CloseSessionHandler = defaultCloseSessionHandler
 	}
+
+	if srv.ProtocolTrackerHandler == nil {
+		srv.ProtocolTrackerHandler = defaultProtocolTrackerHandler
+	}
 }
 
 func (session *session) serve() {
@@ -526,5 +533,6 @@ func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
 func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
 
-func defaultReplyHandler(code int, message string) {}
-func defaultCloseSessionHandler(peer Peer)         {}
+func defaultReplyHandler(code int, message string)                        {}
+func defaultCloseSessionHandler(peer Peer)                                {}
+func defaultProtocolTrackerHandler(action string, duration time.Duration) {}

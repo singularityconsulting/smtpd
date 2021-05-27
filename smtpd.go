@@ -89,14 +89,15 @@ const (
 
 // Peer represents the client connecting to the server
 type Peer struct {
-	HeloName   string               // Server name used in HELO/EHLO command
-	Username   string               // Username from authentication, if authenticated
-	Password   string               // Password from authentication, if authenticated
-	Protocol   Protocol             // Protocol used, SMTP or ESMTP
-	ServerName string               // A copy of Server.Hostname
-	Addr       net.Addr             // Network address
-	TLS        *tls.ConnectionState // TLS Connection details, if on TLS
-	InitTime   time.Time            // Time when the struct was created
+	HeloName    string               // Server name used in HELO/EHLO command
+	Username    string               // Username from authentication, if authenticated
+	Password    string               // Password from authentication, if authenticated
+	Protocol    Protocol             // Protocol used, SMTP or ESMTP
+	ServerName  string               // A copy of Server.Hostname
+	Addr        net.Addr             // Network address
+	TLS         *tls.ConnectionState // TLS Connection details, if on TLS
+	InitTime    time.Time            // Time when the struct was created
+	MailCounter int64                // Counts the number of mails we get per connection
 }
 
 // Error represents an Error reported in the SMTP session.
@@ -138,9 +139,10 @@ func (srv *Server) newSession(c net.Conn) (s *session) {
 		writer:   bufio.NewWriter(c),
 		isClosed: false,
 		peer: Peer{
-			Addr:       c.RemoteAddr(),
-			ServerName: srv.Hostname,
-			InitTime:   time.Now().UTC(),
+			Addr:        c.RemoteAddr(),
+			ServerName:  srv.Hostname,
+			InitTime:    time.Now().UTC(),
+			MailCounter: 0,
 		},
 	}
 

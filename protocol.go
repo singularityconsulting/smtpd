@@ -352,6 +352,7 @@ func (session *session) handleDATA(cmd command) {
 			session.error(err)
 		} else {
 			session.reply(250, "Thank you.")
+			session.peer.MailCounter++
 		}
 
 		session.reset()

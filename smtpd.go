@@ -377,7 +377,7 @@ func (session *session) serve() {
 
 func (session *session) reject() {
 	session.reply(421, "Too busy. Try again later.")
-	session.close()
+	session.closeConnection()
 }
 
 func (session *session) reset() {
@@ -469,18 +469,22 @@ func (session *session) deliver() error {
 
 func (session *session) close() {
 	if !session.isClosed {
-		session.isClosed = true
-
-		session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
-
-		session.writer.Flush()
-		// trying to avoid having a hardcoded sleep time to close the connection using SetWriteDeadline
-		// time.Sleep(200 * time.Millisecond)
-
-		session.conn.Close()
+		session.closeConnection()
 
 		session.server.CloseSessionHandler(session.peer)
 	}
+}
+
+func (session *session) closeConnection() {
+	session.isClosed = true
+
+	session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
+
+	session.writer.Flush()
+	// trying to avoid having a hardcoded sleep time to close the connection using SetWriteDeadline
+	// time.Sleep(200 * time.Millisecond)
+
+	session.conn.Close()
 }
 
 // From net/http/server.go

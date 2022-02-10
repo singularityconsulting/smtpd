@@ -12,6 +12,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Server defines the parameters for running the SMTP server
@@ -64,13 +66,13 @@ type Server struct {
 	inShutdown atomicBool // true when server is in shutdown
 
 	// We need a way to track the protocol return codes
-	ReplyHandler func(code int, message string)
+	ReplyHandler func(peer Peer, code int, message string)
 
 	// And a way to track the end for each request so we can get metrics
 	CloseSessionHandler func(peer Peer)
 
 	// Function to track the time it takes each step of the protocol
-	ProtocolTrackerHandler func(action string, duration time.Duration)
+	ProtocolTrackerHandler func(peer Peer, action string, duration time.Duration)
 
 	// On session close deadline
 	CloseMaxDeadline time.Duration
@@ -98,6 +100,7 @@ type Peer struct {
 	TLS         *tls.ConnectionState // TLS Connection details, if on TLS
 	InitTime    time.Time            // Time when the struct was created
 	MailCounter int64                // Counts the number of mails we get per connection
+	ID          string               // A UUID assigned for this session
 }
 
 // Error represents an Error reported in the SMTP session.
@@ -131,6 +134,15 @@ type session struct {
 }
 
 func (srv *Server) newSession(c net.Conn) (s *session) {
+	sessionID := ""
+
+	id, err := uuid.NewUUID()
+
+	if err != nil {
+		log.Printf("Error generating UUID for new smtp session: %v", err)
+	} else {
+		sessionID = id.String()
+	}
 
 	s = &session{
 		server:   srv,
@@ -143,6 +155,7 @@ func (srv *Server) newSession(c net.Conn) (s *session) {
 			ServerName:  srv.Hostname,
 			InitTime:    time.Now().UTC(),
 			MailCounter: 0,
+			ID:          sessionID,
 		},
 	}
 
@@ -322,18 +335,6 @@ func (srv *Server) configureDefaults() {
 	if srv.WelcomeMessage == "" {
 		srv.WelcomeMessage = fmt.Sprintf("%s ESMTP ready.", srv.Hostname)
 	}
-
-	if srv.ReplyHandler == nil {
-		srv.ReplyHandler = defaultReplyHandler
-	}
-
-	if srv.CloseSessionHandler == nil {
-		srv.CloseSessionHandler = defaultCloseSessionHandler
-	}
-
-	if srv.ProtocolTrackerHandler == nil {
-		srv.ProtocolTrackerHandler = defaultProtocolTrackerHandler
-	}
 }
 
 func (session *session) serve() {
@@ -403,7 +404,10 @@ func (session *session) reply(code int, message string) {
 	session.logf("sending: %d %s", code, message)
 	fmt.Fprintf(session.writer, "%d %s\r\n", code, message)
 	session.flush()
-	session.server.ReplyHandler(code, message)
+
+	if session.server.ReplyHandler != nil {
+		session.server.ReplyHandler(session.peer, code, message)
+	}
 }
 
 func (session *session) flush() {
@@ -470,8 +474,9 @@ func (session *session) deliver() error {
 func (session *session) close() {
 	if !session.isClosed {
 		session.closeConnection()
-
-		session.server.CloseSessionHandler(session.peer)
+		if session.server.CloseSessionHandler != nil {
+			session.server.CloseSessionHandler(session.peer)
+		}
 	}
 }
 
@@ -538,7 +543,3 @@ type atomicBool int32
 func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
 func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
-
-func defaultReplyHandler(code int, message string)                        {}
-func defaultCloseSessionHandler(peer Peer)                                {}
-func defaultProtocolTrackerHandler(action string, duration time.Duration) {}

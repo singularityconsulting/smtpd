@@ -114,7 +114,9 @@ func (session *session) handle(line string) {
 
 	elapsed := time.Since(handleStartTime)
 
-	session.server.ProtocolTrackerHandler(cmd.action, elapsed)
+	if session.server.ProtocolTrackerHandler != nil {
+		session.server.ProtocolTrackerHandler(session.peer, cmd.action, elapsed)
+	}
 }
 
 func (session *session) handleHELO(cmd command) {

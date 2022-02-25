@@ -71,9 +71,6 @@ func (session *session) handle(line string) {
 
 	switch cmd.action {
 
-	case "PROXY":
-		session.handlePROXY(cmd)
-
 	case "HELO":
 		session.handleHELO(cmd)
 
@@ -615,50 +612,6 @@ func (session *session) handleXCLIENT(cmd command) {
 
 	if newProto != "" {
 		session.peer.Protocol = newProto
-	}
-
-	session.welcome()
-
-}
-
-func (session *session) handlePROXY(cmd command) {
-
-	if !session.server.EnableProxyProtocol {
-		session.reply(550, "Proxy Protocol not enabled")
-		return
-	}
-
-	if len(cmd.fields) < 6 {
-		session.reply(502, "Couldn't decode the command.")
-		return
-	}
-
-	var (
-		newAddr    net.IP = nil
-		newTCPPort uint64 = 0
-		err        error
-	)
-
-	newAddr = net.ParseIP(cmd.fields[2])
-
-	newTCPPort, err = strconv.ParseUint(cmd.fields[4], 10, 16)
-	if err != nil {
-		session.reply(502, "Couldn't decode the command.")
-		return
-	}
-
-	tcpAddr, ok := session.peer.Addr.(*net.TCPAddr)
-	if !ok {
-		session.reply(502, "Unsupported network connection")
-		return
-	}
-
-	if newAddr != nil {
-		tcpAddr.IP = newAddr
-	}
-
-	if newTCPPort != 0 {
-		tcpAddr.Port = int(newTCPPort)
 	}
 
 	session.welcome()

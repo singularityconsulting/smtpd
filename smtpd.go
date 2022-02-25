@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pires/go-proxyproto"
 )
 
 // Server defines the parameters for running the SMTP server
@@ -51,6 +52,10 @@ type Server struct {
 
 	EnableXCLIENT       bool // Enable XCLIENT support (default: false)
 	EnableProxyProtocol bool // Enable proxy protocol support (default: false)
+
+	// ReadHeaderTimeout is how long header processing waits for header to
+	// be read from the wire. (default: 10s)
+	ReadHeaderTimeout time.Duration
 
 	TLSConfig *tls.Config // Enable STARTTLS support.
 	ForceTLS  bool        // Force STARTTLS usage.
@@ -205,8 +210,16 @@ func (srv *Server) Serve(l net.Listener) error {
 
 	srv.configureDefaults()
 
+	if srv.EnableProxyProtocol {
+		l = &proxyproto.Listener{
+			Listener:          l,
+			ReadHeaderTimeout: srv.ReadHeaderTimeout,
+		}
+	}
+
 	l = &onceCloseListener{Listener: l}
 	defer l.Close()
+
 	srv.listener = &l
 
 	var limiter chan struct{}
@@ -335,15 +348,17 @@ func (srv *Server) configureDefaults() {
 	if srv.WelcomeMessage == "" {
 		srv.WelcomeMessage = fmt.Sprintf("%s ESMTP ready.", srv.Hostname)
 	}
+
+	if srv.ReadHeaderTimeout == 0 {
+		srv.ReadHeaderTimeout = time.Second * 10
+	}
 }
 
 func (session *session) serve() {
 
 	defer session.close()
 
-	if !session.server.EnableProxyProtocol {
-		session.welcome()
-	}
+	session.welcome()
 
 	for {
 

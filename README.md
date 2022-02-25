@@ -1,4 +1,4 @@
-Go smtpd [![GoDoc](https://godoc.org/github.com/chrj/smtpd?status.png)](https://godoc.org/github.com/chrj/smtpd) [![Go Report Card](https://goreportcard.com/badge/github.com/chrj/smtpd)](https://goreportcard.com/report/github.com/chrj/smtpd)
+Go smtpd [![GoDoc](https://godoc.org/github.com/ouzi-dev/smtpd?status.png)](https://godoc.org/github.com/ouzi-dev/smtpd) [![Go Report Card](https://goreportcard.com/badge/github.com/ouzi-dev/smtpd)](https://goreportcard.com/report/github.com/ouzi-dev/smtpd)
 ========
 
 Package smtpd implements an SMTP server in golang.

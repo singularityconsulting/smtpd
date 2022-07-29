@@ -415,11 +415,10 @@ func (session *session) handleAUTH(cmd command) {
 		return
 	}
 
-	// allow auth with no tls for internal cluster relay
-	// if !session.tls {
-	// 	session.reply(502, "Cannot AUTH in plain text mode. Use STARTTLS.")
-	// 	return
-	// }
+	if !session.tls {
+		session.reply(502, "Cannot AUTH in plain text mode. Use STARTTLS.")
+		return
+	}
 
 	mechanism := strings.ToUpper(cmd.fields[1])
 

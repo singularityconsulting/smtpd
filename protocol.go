@@ -218,6 +218,7 @@ func (session *session) handleMAIL(cmd command) {
 
 		if err != nil {
 			session.reply(502, "Malformed e-mail address")
+			session.logError(err, "Malformed e-mail address")
 			return
 		}
 	}
@@ -260,6 +261,7 @@ func (session *session) handleRCPT(cmd command) {
 
 	if err != nil {
 		session.reply(502, "Malformed e-mail address")
+		session.logError(err, "Malformed e-mail address")
 		return
 	}
 

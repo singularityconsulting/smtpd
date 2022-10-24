@@ -15,7 +15,7 @@ func parseAddress(src string) (string, error) {
 	// though not RFC compliant.
 	addr, err := mail.ParseAddress(src)
 	if err != nil {
-		return "", fmt.Errorf("malformed e-mail address: %s", src)
+		return "", fmt.Errorf("malformed e-mail address: %s, error: %v", src, err)
 	}
 
 	return addr.Address, nil

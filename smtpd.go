@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pires/go-proxyproto"
+	"go.uber.org/zap"
 )
 
 // Server defines the parameters for running the SMTP server
@@ -61,6 +62,8 @@ type Server struct {
 	ForceTLS  bool        // Force STARTTLS usage.
 
 	ProtocolLogger *log.Logger
+
+	ZapLogger *zap.Logger
 
 	// mu guards doneChan and makes closing it and listener atomic from
 	// perspective of Serve()

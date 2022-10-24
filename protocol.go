@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type command struct {
@@ -218,7 +220,14 @@ func (session *session) handleMAIL(cmd command) {
 
 		if err != nil {
 			session.reply(502, "Malformed e-mail address")
-			session.logError(err, "Malformed e-mail address")
+			if session.server.ZapLogger != nil {
+				session.server.ZapLogger.Error(
+					"Malformed e-mail address on handleMAIL",
+					zap.String("mail", cmd.params[1]),
+					zap.String("sessionID", session.peer.ID),
+					zap.Error(err),
+				)
+			}
 			return
 		}
 	}
@@ -261,7 +270,14 @@ func (session *session) handleRCPT(cmd command) {
 
 	if err != nil {
 		session.reply(502, "Malformed e-mail address")
-		session.logError(err, "Malformed e-mail address")
+		if session.server.ZapLogger != nil {
+			session.server.ZapLogger.Error(
+				"Malformed e-mail address on handleMAIL",
+				zap.String("mail", cmd.params[1]),
+				zap.String("sessionID", session.peer.ID),
+				zap.Error(err),
+			)
+		}
 		return
 	}
 

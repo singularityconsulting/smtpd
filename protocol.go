@@ -223,6 +223,7 @@ func (session *session) handleMAIL(cmd command) {
 			if session.server.ZapLogger != nil {
 				session.server.ZapLogger.Error(
 					"Malformed e-mail address on handleMAIL",
+					zap.String("command", cmd.params[0]),
 					zap.String("mail", cmd.params[1]),
 					zap.String("sessionID", session.peer.ID),
 					zap.Error(err),
@@ -272,7 +273,8 @@ func (session *session) handleRCPT(cmd command) {
 		session.reply(502, "Malformed e-mail address")
 		if session.server.ZapLogger != nil {
 			session.server.ZapLogger.Error(
-				"Malformed e-mail address on handleMAIL",
+				"Malformed e-mail address on handleRCPT",
+				zap.String("command", cmd.params[0]),
 				zap.String("mail", cmd.params[1]),
 				zap.String("sessionID", session.peer.ID),
 				zap.Error(err),

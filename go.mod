@@ -1,4 +1,4 @@
-module github.com/ouzi-dev/smtpd
+module github.com/singularityconsulting/smtpd
 
 go 1.17
 

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ouzi-dev/smtpd"
+	"github.com/singularityconsulting/smtpd"
 )
 
 var localhostCert = []byte(`-----BEGIN CERTIFICATE-----
